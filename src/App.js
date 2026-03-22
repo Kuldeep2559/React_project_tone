@@ -11,6 +11,12 @@ function App() {
       <li>
         2. Class
       </li>
+      <li>
+        3.Roll_no
+      </li>
+      <li>
+        4.Section
+      </li>
       
     </nav>
     <div>
