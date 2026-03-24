@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { db } from '../firebase'; 
+import { db } from './firebase'; 
 import { collection, addDoc, getDocs, query, orderBy } from "firebase/firestore"; 
 
 export default function TextForm() {
