@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { db } from './firebase'; 
 import { collection, addDoc, getDocs, query, orderBy } from "firebase/firestore"; 
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { where, writeBatch, Timestamp } from "firebase/firestore";  // where, writeBatch and Timestamp only for deletion according to date.
 
 
 
@@ -45,6 +46,44 @@ export default function TextForm() {
         setHistory(querySnapshot.docs.map(doc => doc.data()));
     };
 
+    // delete history
+    const deleteHistory = async (range) => 
+    {
+        const now = new Date();
+        let startTime;
+
+        if (range === '1h') {
+            startTime = new Date(now.getTime() - 60 * 60 * 1000); // 1 hour ago
+            } else if (range === '1d') {
+            startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24 hours ago
+        }
+
+        try {
+        let q;
+        const collectionRef = collection(db, "ai_chats");
+
+        if (range === 'all') {
+            q = query(collectionRef);
+        } else {
+            // Only select docs newer than the startTime
+            q = query(collectionRef, where("timestamp", ">=", startTime));
+        }
+
+            const querySnapshot = await getDocs(q);
+            const batch = writeBatch(db); // Using a batch is faster for deleting multiple items
+
+            querySnapshot.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+
+            await batch.commit();
+            alert(`History for ${range} deleted!`);
+            fetchHistory(); // Refresh the list so the deleted items disappear
+        } catch (error) {
+            console.error("Delete Error:", error);
+        }
+    };  // end of delete history function.
+
     return (
         <div className="container my-3">
             <div className="row">
@@ -69,8 +108,34 @@ export default function TextForm() {
 
             {/* 3rd Area: History from Database */}
             <div className="mt-4">
+            <div>
                 <h3>Saved History (from Firebase)</h3>
-                <button className="btn btn-secondary mb-3" onClick={fetchHistory}>Refresh History</button>
+                
+               {/* This div uses d-flex to keep buttons in one horizontal line */}
+            <div className="d-flex align-items-center gap-2 mb-3">
+        
+                            {/* Button 1: Refresh */}
+                    <button className="btn btn-secondary" onClick={fetchHistory}>
+                        Refresh History
+                    </button>
+                    
+                    {/* Button 2: The Clear History Dropdown */}
+                    <div className="dropdown">
+                        <button className="btn btn-danger dropdown-toggle" type="button" id="deleteDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            Clear History
+                        </button>
+                        <ul className="dropdown-menu" aria-labelledby="deleteDropdown">
+                            <li><button className="dropdown-item" onClick={() => deleteHistory('1h')}>Last 1 Hour</button></li>
+                            <li><button className="dropdown-item" onClick={() => deleteHistory('1d')}>Last 24 Hours</button></li>
+                            <li><hr className="dropdown-divider" /></li>
+                            <li><button className="dropdown-item text-danger" onClick={() => deleteHistory('all')}>All History</button></li>
+                        </ul>
+                    </div>
+        
+    </div> {/* End of Horizontal Row */}
+
+
+                //
                 <div className="list-group">
                     {history.map((item, index) => (
                         <div key={index} className="list-group-item list-group-item-action">
@@ -81,71 +146,7 @@ export default function TextForm() {
                 </div>
             </div>
         </div>
+        </div>
     );
 }
 
-
-
-
-//Commented
-// export default function TextForm() {
-//     const [text, setText] = useState("");
-//     const [history, setHistory] = useState(""); // State to store all pulled data
-
-//     // 1. Function to SAVE data (Each click creates a NEW entry)
-//     const handleOnSubmit = async () => {
-//         if (text.trim() === "") return;
-//         try {
-//             await addDoc(collection(db, "user_entries"), {
-//                 content: text,
-//                 timestamp: new Date()
-//             });
-//             setText(""); // Clear the top box after saving
-//             alert("Saved to Database!");
-//         } catch (e) {
-//             console.error("Error: ", e);
-//         }
-//     };
-
-//     // 2. Function to DISPLAY all data
-//     const handleDisplay = async () => {
-//         try {
-//             // We ask Firebase for the "user_entries" folder, sorted by time
-//             const q = query(collection(db, "user_entries"), orderBy("timestamp", "desc"));
-//             const querySnapshot = await getDocs(q);
-            
-//             // We combine all the text pieces into one big string
-//             let allText = "";
-//             querySnapshot.forEach((doc) => {
-//                 allText += `${doc.data().content}\n---\n`; 
-//             });
-            
-//             setHistory(allText); // Put the big string into our second box
-//         } catch (e) {
-//             console.error("Error fetching: ", e);
-//         }
-//     };
-
-//     return (
-//         <div className="container mt-4">
-//             <h3>Input Area</h3>
-//             <textarea className="form-control" value={text} onChange={(e) => setText(e.target.value)} rows="4"></textarea>
-            
-//             <div className="mt-2">
-//                 <button className="btn btn-success me-2" onClick={handleOnSubmit}>Save to Firebase</button>
-//                 <button className="btn btn-info" onClick={handleDisplay}>Display All History</button>
-//             </div>
-
-//             <hr />
-
-//             <h3>Database History</h3>
-//             <textarea 
-//                 className="form-control bg-light" 
-//                 value={history} 
-//                 readOnly // This makes it so you can't type in the history box
-//                 placeholder="Click 'Display' to see old data..."
-//                 rows="8"
-//             ></textarea>
-//         </div>
-//     );
-// }
