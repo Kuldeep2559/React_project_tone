@@ -1,4 +1,4 @@
-This project is saved as Reactprojecttrytwo in C.
+This project is saved as Reactprojecttrytwo in C. This project is full stack has gemini, firebase api both.
 
 This website is now a **Multi-AI Selection Hub** that connects a React frontend to Google's cloud services. It follows a structured flow from the moment a user lands on the page to the moment they interact with an AI.
 
